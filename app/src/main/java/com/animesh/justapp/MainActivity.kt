@@ -20,7 +20,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.animesh.justapp.data.User
 import com.animesh.justapp.ui.theme.JustAppTheme
+import com.animesh.justapp.uicomponents.CircularProgressBar
 import com.animesh.justapp.viewmodels.LoginViweModel
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     private val loginViewModel: LoginViweModel by viewModels()
@@ -120,6 +122,7 @@ fun SetUpLoginRegisterScreen(loginViewModel: LoginViweModel) {
                     Text("Register", color = Color.White)
                 }
             }
+            CircularProgressBar(isDisplayed = loginViewModel.loadingProgressBar.value)
         }
     }
 }
@@ -129,6 +132,6 @@ fun SetUpLoginRegisterScreen(loginViewModel: LoginViweModel) {
 @Composable
 fun DefaultPreview() {
     JustAppTheme {
-        SetUpLoginRegisterScreen(loginViewModel)
+
     }
 }
