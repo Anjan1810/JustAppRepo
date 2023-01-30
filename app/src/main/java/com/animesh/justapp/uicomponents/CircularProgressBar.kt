@@ -9,6 +9,8 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -24,4 +26,16 @@ fun CircularProgressBar(isDisplayed: Boolean) {
             CircularProgressIndicator(color = MaterialTheme.colors.primary)
         }
     }
+}
+@Composable
+fun brushForTextField(color:Color): Brush {
+    val brush = Brush.verticalGradient(
+        0.0f to Color.White,
+        0.3f to color,
+        1.0f to Color.White,
+
+        startY = 0.0f,
+        endY = 100.0f
+    )
+    return brush
 }

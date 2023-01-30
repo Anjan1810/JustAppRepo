@@ -1,14 +1,16 @@
 package com.animesh.justapp.viewmodels
 
+import android.os.Handler
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.animesh.justapp.data.User
 import com.animesh.justapp.repository.UserRepository
-import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
+import java.util.Timer
+import java.util.TimerTask
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class LoginViweModel : ViewModel() {
     val userRepository = UserRepository()
@@ -20,11 +22,10 @@ class LoginViweModel : ViewModel() {
 
     fun doLogin(user: User): String {
         var str = ""
-        viewModelScope.launch {
-            loadingProgressBar.value = true
-            str = userRepository.doLogin(user)
-            loadingProgressBar.value = false
-        }
+        loadingProgressBar.value = true
+        str = userRepository.doLogin(user)
+        loadingProgressBar.value = false
+
         return str
     }
 

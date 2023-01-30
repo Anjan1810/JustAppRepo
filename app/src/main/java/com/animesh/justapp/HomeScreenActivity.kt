@@ -10,9 +10,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -21,9 +22,13 @@ import androidx.lifecycle.compose.ExperimentalLifecycleComposeApi
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.animesh.justapp.data.FavouriteActivity
 import com.animesh.justapp.data.FinalFavActivityState
+import com.animesh.justapp.data.MenuItem
 import com.animesh.justapp.repository.FavouriteActivityDescription
 import com.animesh.justapp.repository.UserFavActivitiesRepository
 import com.animesh.justapp.ui.theme.JustAppTheme
+import com.animesh.justapp.uicomponents.AppBar
+import com.animesh.justapp.uicomponents.DrawerBody
+import com.animesh.justapp.uicomponents.DrawerHeader
 import com.animesh.justapp.viewmodels.HomeScreenViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -41,7 +46,29 @@ class HomeScreenActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             JustAppTheme {
-                // A surface container using the 'background' color from the theme
+                val scaffoldState = rememberScaffoldState()
+                val scope = rememberCoroutineScope()
+                Scaffold(scaffoldState = scaffoldState,
+                    topBar = {
+                        AppBar(
+                            onNavigationIconClick = {
+                                scope.launch { scaffoldState.drawerState.open() }
+
+                            })
+                    },
+                    drawerContent = {
+                        DrawerHeader()
+                        DrawerBody(
+                            items = listOf(
+                                MenuItem("Home", "Home", Icons.Default.Home),
+                                MenuItem("Settings", "Settings", Icons.Default.Settings)
+                            ),
+                            onItemClick = { println("clicked on ${it.title}") }
+
+                        )
+                    }) {
+
+                }
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
@@ -58,26 +85,32 @@ class HomeScreenActivity : ComponentActivity() {
 fun SetUpFavouriteActivities(homeScreenViewModel: HomeScreenViewModel) {
 
 
-    val favActivity= homeScreenViewModel.favouriteActivity
+    val favActivity = homeScreenViewModel.favouriteActivity
 
     val favActivitydesc: FavouriteActivityDescription by homeScreenViewModel.favouriteActivityDescription.collectAsState(
         initial = FavouriteActivityDescription("")
     )
 
     val list = remember {
-        mutableStateListOf(FinalFavActivityState(
-            FavouriteActivity("","",""),
-            FavouriteActivityDescription("")
-        ))
+        mutableStateListOf(
+            FinalFavActivityState(
+                FavouriteActivity("", "", ""),
+                FavouriteActivityDescription("")
+            )
+        )
     }
 
-   // val finalFavActivityState by homeScreenViewModel.combinedflow.collectAsStateWithLifecycle()
+    // val finalFavActivityState by homeScreenViewModel.combinedflow.collectAsStateWithLifecycle()
 
     //list.add(favActivity)
 
 
     Box() {
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(50.dp)) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(50.dp)
+        ) {
             items(favActivity) { model -> Text(model.rating) }
         }
     }

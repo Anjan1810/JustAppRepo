@@ -14,10 +14,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.animesh.justapp.data.User
 import com.animesh.justapp.ui.theme.JustAppTheme
+import com.animesh.justapp.uicomponents.brushForTextField
 import com.animesh.justapp.viewmodels.RegisterViewModel
 
 class RegisterActivity : ComponentActivity() {
@@ -45,32 +48,67 @@ fun SetUpRegisterScreen(viewModel: RegisterViewModel) {
 
     Box(modifier = Modifier.background(Color.White)) {
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.padding(25.dp, 100.dp, 25.dp, 0.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "UserName", Modifier.weight(0.3F, true))
+                Text(
+                    text = "Name", Modifier.weight(0.29F, true),
+                    fontFamily = FontFamily.Cursive,
+                    fontSize = 24.sp
+                )
                 var id = remember { mutableStateOf("") }
                 viewModel.username = id.value
-                TextField(
+                TextField(modifier = Modifier
+                    .weight(0.75f, true)
+                    .background(
+                        brushForTextField(Color.Blue)
+                    ),
                     value = id.value,
                     onValueChange = { newid -> id.value = newid },
                     placeholder = { Text("Enter USERNAME") }
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "EmailId", Modifier.weight(0.3F, true))
+            Row(
+                modifier = Modifier.padding(0.dp, 25.dp, 0.dp, 0.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "EmailId", Modifier.weight(0.29F, true),
+                    fontFamily = FontFamily.Cursive,
+                    fontSize = 24.sp,
+                    maxLines = 1
+                )
                 var emailId = remember { mutableStateOf("") }
                 viewModel.email = emailId.value
-                TextField(
+                TextField(modifier = Modifier
+                    .weight(0.75f, true)
+                    .background(
+                        brushForTextField(Color.Blue)
+                    ),
                     value = emailId.value,
                     onValueChange = { newemailId -> emailId.value = newemailId },
                     placeholder = { Text("Enter emailId") }
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "Password", Modifier.weight(0.3F, true))
+            Row(
+                modifier = Modifier.padding(0.dp, 25.dp, 0.dp, 0.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Password", Modifier.weight(0.29F, true),
+                    fontFamily = FontFamily.Cursive,
+                    fontSize = 24.sp,
+                    maxLines = 1
+                )
                 var pswd = remember { mutableStateOf("") }
                 viewModel.password = pswd.value
-                TextField(
+                TextField(modifier = Modifier
+                    .weight(0.75f, true)
+                    .background(
+                        brushForTextField(Color.Blue)
+                    ),
                     value = pswd.value,
                     onValueChange = { newpswd -> pswd.value = newpswd },
                     placeholder = { Text("Enter pswd") }
