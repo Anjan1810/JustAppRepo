@@ -1,6 +1,7 @@
 package com.animesh.justapp.viewmodels
 
 import android.os.Handler
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,9 +15,15 @@ import java.util.concurrent.TimeUnit
 
 class LoginViweModel : ViewModel() {
     val userRepository = UserRepository()
-    lateinit var username: String
+
+    private val _username = mutableStateOf("")
+    val username: MutableState<String>
+        get() = _username
+
     lateinit var email: String
-    lateinit var password: String
+    private val _password = mutableStateOf("")
+    val password: MutableState<String>
+        get() = _password
 
     val loadingProgressBar = mutableStateOf(false)
 
