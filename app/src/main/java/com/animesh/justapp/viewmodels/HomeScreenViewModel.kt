@@ -17,29 +17,40 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeScreenViewModel @Inject constructor(userFavActRepo: UserFavActivitiesRepository) :
     ViewModel() {
-    val userRepo = UserFavActivitiesRepository()
     val userRepo1 = userFavActRepo
-    lateinit var expenditureText: String
-    lateinit var expenseAmount: String
 
-    var userid: String = "animesh"
-    val expenditures = userRepo1.getExpenditures(userid)
+    private lateinit var expenditures: MutableList<Expenditure>
 
-    val liveDataList = MutableLiveData<List<Expenditure>>(listOf(
-        Expenditure("Item 1","","")
-    ))
+
+    fun getTotalExpenseOnDay(user: String, day: String, month: String, year: String): Int {
+        var totalExpenditure = 0
+        userRepo1.getExpenditures(user, day, month, year)
+            .forEach { totalExpenditure += it.expenditureAmount.toInt() }
+        return totalExpenditure
+    }
+
+    fun getExpenses(
+        userId: String,
+        day: String,
+        month: String,
+        year: String
+    ): MutableList<Expenditure> {
+        expenditures = userRepo1.getExpenditures(userId, day, month, year)
+        return expenditures
+    }
 
     fun addExpense(expenditure: Expenditure) {
         userRepo1.addExpenditure(expenditure)
         ///if succesful add to live data
 
     }
-    fun addExpensde(expenditure: Expenditure) {
-        userRepo1.addExpenditure(expenditure)
+
+    fun removeExpense(expenditure: Expenditure) {
+        userRepo1.removeExpenditure(expenditure)
+        expenditures.remove(expenditure)
         ///if succesful add to live data
 
     }
-
 
 
 }

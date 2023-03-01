@@ -20,19 +20,27 @@ interface UserApi {
     suspend fun registerUser(@Body user: User): String
 
     @POST("/register/login")
-    suspend fun login(@Body user: User):String
+    suspend fun login(@Body user: User): String
 
     @GET("/userinfo/expenditures")
-    suspend fun getExpendituresForUser(@Query ("userid")userid:String):MutableList<Expenditure>
+    suspend fun getExpendituresForUser(
+        @Query("userid") userid: String,
+        @Query("day") day: String,
+        @Query("month") month: String,
+        @Query("year") year: String
+    ): MutableList<Expenditure>
 
     @POST("/userinfo/expenditure/add")
-    suspend fun addExpenditure(@Body expenditure: Expenditure):String
+    suspend fun addExpenditure(@Body expenditure: Expenditure): String
+
+    @POST("/userinfo/expenditure/remove")
+    suspend fun removeExpenditure(@Body expenditure: Expenditure): String
 
     @Multipart
     @POST("/image")
-    suspend fun  insertImage(@Part image: MultipartBody.Part):String
+    suspend fun insertImage(@Part image: MultipartBody.Part): String
 
     @GET("/image/{name}")
-    suspend fun getProfileImage(@Path ("name")userid:String): String
+    suspend fun getProfileImage(@Path("name") userid: String): String
 
 }

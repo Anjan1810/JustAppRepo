@@ -61,6 +61,12 @@ val colors = lightColors(
     secondary = JustAppGray,
     onSecondary = JustAppBlack,
 )
+val fontcolors = lightColors(
+    primary = JustAppdarkteal,
+    onPrimary = JustAppBlack,
+    secondary = JustAppGray,
+    onSecondary = JustAppBlack,
+)
 val customColors = lightColors(
     primary = JustAppyellow,
     onPrimary = JustAppSoftGreen,

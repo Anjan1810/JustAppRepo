@@ -1,12 +1,15 @@
 package com.animesh.justapp
 
+import android.app.DatePickerDialog
 import androidx.compose.material.Typography
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.widget.DatePicker
+import android.widget.DatePicker.OnDateChangedListener
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.OnBackPressedDispatcher
@@ -14,16 +17,17 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.GridCells
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyVerticalGrid
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.MaterialTheme.typography
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.*
@@ -55,10 +59,6 @@ import com.animesh.justapp.data.MenuItem
 import com.animesh.justapp.repository.ExpenditureDescription
 import com.animesh.justapp.repository.UserFavActivitiesRepository
 import com.animesh.justapp.ui.theme.JustAppTheme
-import com.animesh.justapp.uicomponents.AppBar
-import com.animesh.justapp.uicomponents.DrawerBody
-import com.animesh.justapp.uicomponents.colors
-import com.animesh.justapp.uicomponents.customColors
 import com.animesh.justapp.viewmodels.HomeScreenViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -67,7 +67,14 @@ import java.io.File
 import java.io.FileOutputStream
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.animesh.justapp.uicomponents.*
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.util.*
 import kotlin.math.exp
 
 @AndroidEntryPoint
@@ -79,6 +86,8 @@ class HomeScreenActivity : ComponentActivity() {
         }
     }
     private val homeScreenViewModel: HomeScreenViewModel by viewModels()
+
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -105,7 +114,30 @@ class HomeScreenActivity : ComponentActivity() {
                         )
                     }) {
 
-                    StatefulExpenditureView(modifier = Modifier)
+                    Column() {
+                        // val mDate = remember { mutableStateOf(LocalDate.now().toString()) }
+                        var mDay =
+                            remember { mutableStateOf(LocalDate.now().dayOfMonth.toString()) }
+                        val mMonth =
+                            remember { mutableStateOf(LocalDate.now().monthValue.toString()) }
+                        val mYear = remember { mutableStateOf(LocalDate.now().year.toString()) }
+                        calendar(onDateChanged = { year, month, day ->
+                            mDay.value = day.toString()
+                            mMonth.value = month.toString()
+                            mYear.value = year.toString()
+                        })
+
+                        Spacer(modifier = Modifier.padding(5.dp, 5.dp, 5.dp, 5.dp))
+
+                        StatefulExpenditureView(
+                            homeScreenViewModel,
+                            mDay.value,
+                            mMonth.value,
+                            mYear.value,
+                            modifier = Modifier
+                        )
+                    }
+
                 }
             }
         }
@@ -123,6 +155,78 @@ class HomeScreenActivity : ComponentActivity() {
 
         // Unregister the back pressed callback with the OnBackPressedDispatcher
         backPressedCallback.isEnabled = false
+    }
+
+
+    @Composable
+    fun totalExpenseView(){
+
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @Composable
+    fun calendar(
+        onDateChanged: (Int, Int, Int) -> Unit
+    ) {
+        val mContext = LocalContext.current
+
+
+        val mYear: Int
+        val mMonth: Int
+        val mDay: Int
+
+        // Initializing a Calendar
+        val mCalendar = Calendar.getInstance()
+
+        // Fetching current year, month and day
+        mYear = mCalendar.get(Calendar.YEAR)
+        mMonth = mCalendar.get(Calendar.MONTH)
+        mDay = mCalendar.get(Calendar.DAY_OF_MONTH)
+
+        mCalendar.time = Date()
+
+
+
+        val mDate = remember { mutableStateOf(LocalDate.now().toString()) }
+
+
+        val mDatePickerDialog = DatePickerDialog(
+            mContext,
+            { _, year, month, dayOfMonth ->
+                // Your code here, which will be executed when the date is set.
+                // You can use the new values of year, month, and dayOfMonth to perform some action.
+                mDate.value = "$dayOfMonth/${month + 1}/$year"
+                onDateChanged(year, (month + 1), dayOfMonth)
+            }, mYear, mMonth, mDay
+        )
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            Icon(
+                Icons.Filled.Edit,
+                contentDescription = "Calendar icon",
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable { mDatePickerDialog.show() },
+                tint = Color.Red
+            )
+
+            // Adding a space of 100dp height
+            Spacer(modifier = Modifier.size(10.dp))
+
+            // Displaying the mDate value in the Text
+            Text(
+                text = "Date: ${mDate.value}",
+                fontSize = 30.sp,
+                textAlign = TextAlign.Center,
+                fontFamily = FontFamily(Font(R.font.teko_semibold))
+            )
+        }
     }
 
     @OptIn(ExperimentalCoilApi::class)
@@ -144,7 +248,7 @@ class HomeScreenActivity : ComponentActivity() {
             Column() {
                 Row() {
                     var painter = rememberImagePainter(
-                        data = "http://192.168.1.2:8080/image/profile",
+                        data = "http://192.168.1.6:8080/image/profile",
                         builder = {})
                     if (!selectImages.isEmpty()) {
                         painter = rememberImagePainter(
@@ -166,7 +270,8 @@ class HomeScreenActivity : ComponentActivity() {
                     )
                     Spacer(Modifier.weight(0.9f))
                     Image(
-                        painter = painterResource(id = R.drawable.edit), contentDescription = null,
+                        painter = painterResource(id = R.drawable.edit),
+                        contentDescription = null,
                         modifier = Modifier
                             .clickable {
                                 if (!selectImages.isEmpty()) {
@@ -191,17 +296,55 @@ class HomeScreenActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalLifecycleComposeApi::class)
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun StatefulExpenditureView(
     homeScreenViewModel: HomeScreenViewModel = viewModel(),
+    mDate: String,
+    mMonth: String,
+    mYear: String,
     modifier: Modifier
 ) {
 
     var showView = remember { mutableStateOf(false) }
     var text by remember { mutableStateOf("") }
     var number by remember { mutableStateOf("") }
-    val expenditures = remember { homeScreenViewModel.expenditures }
+    var showAlert = remember { mutableStateOf(false) }
+    val expenditures = homeScreenViewModel.getExpenses(
+        "animesh",
+        mDate,
+        mMonth,
+        mYear
+    )
+    var total = homeScreenViewModel.getTotalExpenseOnDay(
+                "animesh",
+                mDate,
+                mMonth,
+                mYear
+            )
+
+
+    Text(
+        "Total Expenditure On this day-${
+            total
+        }",
+        modifier = Modifier
+            .padding(10.dp, 5.dp, 10.dp, 5.dp)
+            .fillMaxWidth()
+            .background(
+                customColors.onPrimary
+            ),
+        style = TextStyle(
+            fontFamily = FontFamily(Font(R.font.teko_semibold)),
+            fontWeight = FontWeight.Normal,
+            fontSize = 22.sp,
+            color = fontcolors.primary
+        ), textAlign = TextAlign.Center
+
+    )
+
+    Spacer(modifier = Modifier.padding(5.dp, 5.dp, 5.dp, 5.dp))
+    var expense by remember { mutableStateOf<Expenditure>(Expenditure("", "", "", "", "", "")) }
     StatelessExpenditureView(
         showView = showView.value,
         text = text,
@@ -213,19 +356,90 @@ fun StatefulExpenditureView(
             var expenditure = Expenditure(
                 "animesh",
                 text,
-                number
+                number,
+                mDate,
+                mMonth,
+                mYear
             )
             showView.value = !showView.value
             homeScreenViewModel.addExpense(expenditure)
             expenditures.add(expenditure)
         },
         onFloatinguttonClick = { showView.value = !showView.value },
+        onDeleteClick = { it ->
+            expense = it
+            showAlert.value = true
+        },
         modifier = modifier
     )
+
+    DeleteConfirmationDialog(
+        modifier = modifier,
+        showView = showAlert.value,
+        onConfirm = {
+            homeScreenViewModel.removeExpense(expense)
+            showAlert.value = false
+        }, onCancel = { showAlert.value = false })
+
+
+}
+
+@Composable
+fun DeleteConfirmationDialog(
+    modifier: Modifier,
+    showView: Boolean,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit
+) {
+
+    if (showView) {
+        AlertDialog(
+            onDismissRequest = onCancel,
+            title = {
+                Text(
+                    "Confirm Deletion", style = TextStyle(
+                        fontFamily = FontFamily(Font(R.font.handlee_regular)),
+                        fontWeight = FontWeight.Normal,
+                        color = Color.Black
+                    )
+                )
+            },
+            text = {
+                Text(
+                    "${R.string.delete_item}", style = TextStyle(
+                        fontFamily = FontFamily(Font(R.font.handlee_regular)),
+                        fontWeight = FontWeight.Normal,
+                        color = Color.Black
+                    )
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onConfirm()
+
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = {
+                        onCancel()
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
 
 }
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalLifecycleComposeApi::class)
 @Composable
 fun StatelessExpenditureView(
@@ -237,18 +451,26 @@ fun StatelessExpenditureView(
     onExpenseValueChanged: (String) -> Unit,
     onSaveClick: () -> Unit,
     onFloatinguttonClick: () -> Unit,
+    onDeleteClick: (Expenditure) -> Unit,
     modifier: Modifier
 ) {
 
 
     Box() {
+        Spacer(modifier = modifier.padding(25.dp))
         if (!showView) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(50.dp)
+                    .padding(20.dp, 5.dp, 20.dp, 25.dp)
+                    .clickable { }, verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                items(expenditures) { model -> Text(model.expenditureName) }
+                itemsIndexed(expenditures) { index, item ->
+                    ExpenditureItem(
+                        expenditure = item,
+                        FontFamily(Font(R.font.handlee_regular)),
+                        onDelete = { onDeleteClick(item) })
+                }
             }
         }
 
@@ -257,13 +479,14 @@ fun StatelessExpenditureView(
                 modifier = Modifier
                     .padding(24.dp)
                     .fillMaxHeight()
+                    .verticalScroll(rememberScrollState())
             ) {
                 Text(
-                    text = "Enter Text:",
+                    text = "Expense:",
                     style = TextStyle(
-                        fontFamily = FontFamily.SansSerif,
+                        fontFamily = FontFamily(Font(R.font.handlee_regular)),
                         fontWeight = FontWeight.Normal,
-                        fontSize = 16.sp,
+                        fontSize = 22.sp,
                         color = Color.Black
                     ),
                     color = MaterialTheme.colors.onBackground,
@@ -272,24 +495,26 @@ fun StatelessExpenditureView(
 
 
                 OutlinedTextField(
-                    modifier = Modifier,
+                    modifier = Modifier
+                        .padding(bottom = 32.dp)
+                        .heightIn(100.dp, 350.dp),
                     value = text,
                     onValueChange = { onTextValueChanged(it) },
-                    placeholder = { Text("Enter text") },
+                    placeholder = { Text("Expense") },
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         textColor = MaterialTheme.colors.onBackground,
                         cursorColor = MaterialTheme.colors.primary,
                         focusedBorderColor = MaterialTheme.colors.primary,
                         backgroundColor = customColors.onPrimary
-                    ),
+                    )
                 )
 
                 Text(
-                    text = "Enter Number:",
+                    text = "Amount:",
                     style = TextStyle(
-                        fontFamily = FontFamily.SansSerif,
+                        fontFamily = FontFamily(Font(R.font.handlee_regular)),
                         fontWeight = FontWeight.Normal,
-                        fontSize = 16.sp,
+                        fontSize = 22.sp,
                         color = Color.Black
                     ),
                     color = MaterialTheme.colors.onBackground,
@@ -297,16 +522,19 @@ fun StatelessExpenditureView(
                 )
 
                 OutlinedTextField(
-                    modifier = Modifier,
+                    modifier = Modifier
+                        .padding(bottom = 32.dp)
+                        .heightIn(100.dp, 350.dp),
                     value = number,
                     onValueChange = { onExpenseValueChanged(it) },
-                    placeholder = { },
+                    placeholder = { Text("Amount") },
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         textColor = MaterialTheme.colors.onBackground,
                         cursorColor = MaterialTheme.colors.primary,
                         focusedBorderColor = MaterialTheme.colors.primary,
                         backgroundColor = customColors.onPrimary
                     ),
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                 )
                 Button(
                     onClick = { onSaveClick() },
@@ -329,18 +557,16 @@ fun StatelessExpenditureView(
         }
         FloatingActionButton(
             onClick = { onFloatinguttonClick() },
-            backgroundColor = Color.Red,
+            backgroundColor = Color.Green,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(24.dp)
         ) {
-            Image(
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_launcher_background),
-                contentDescription = null
-            )
+            Icon(Icons.Filled.Add, contentDescription = "Add")
         }
     }
 }
+
 
 @Preview(showBackground = true)
 @Composable

@@ -21,10 +21,10 @@ class UserFavActivitiesRepository @Inject constructor() {
     val userApi = RetrofitHelper.getInstance().create(UserApi::class.java)
 
 
-    fun getExpenditures(user: String): MutableList<Expenditure> {
+    fun getExpenditures(user: String,day:String,month:String,year:String): MutableList<Expenditure> {
         var result = mutableListOf<Expenditure>()
         runBlocking {
-            result = async { userApi.getExpendituresForUser(user) }.await()
+            result = async { userApi.getExpendituresForUser(user,day,month,year) }.await()
         }
         return result
     }
@@ -33,6 +33,14 @@ class UserFavActivitiesRepository @Inject constructor() {
         var result = ""
         runBlocking {
             result = async { userApi.addExpenditure(expenditure) }.await()
+        }
+        return result
+    }
+
+    fun removeExpenditure(expenditure: Expenditure):String{
+        var result = ""
+        runBlocking {
+            result = async { userApi.removeExpenditure(expenditure) }.await()
         }
         return result
     }
