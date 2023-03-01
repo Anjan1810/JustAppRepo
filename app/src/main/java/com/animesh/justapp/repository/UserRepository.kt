@@ -28,14 +28,6 @@ class UserRepository {
     fun doLogin(user: User): String {
         var string = ""
 
-        /*runBlocking {
-            GlobalScope.launch {
-                val result = userApi.login(user)
-                if (result != null) {
-                    string = result
-                }
-            }
-        }*/
         runBlocking {
             string = async { userApi.login(user) }.await()
         }
