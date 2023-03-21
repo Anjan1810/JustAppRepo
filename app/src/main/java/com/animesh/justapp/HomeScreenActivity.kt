@@ -1,6 +1,8 @@
 package com.animesh.justapp
 
 import android.app.DatePickerDialog
+import android.content.Context
+import android.content.Intent
 import androidx.compose.material.Typography
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.MaterialTheme
@@ -8,8 +10,11 @@ import androidx.compose.material.Text
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.LimitExceededException
+import android.util.Log
 import android.widget.DatePicker
 import android.widget.DatePicker.OnDateChangedListener
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.OnBackPressedDispatcher
@@ -22,14 +27,12 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.MaterialTheme.typography
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,13 +70,32 @@ import java.io.File
 import java.io.FileOutputStream
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.animesh.justapp.network.RetrofitHelper
+import com.animesh.justapp.repository.DataStoreManager
 import com.animesh.justapp.uicomponents.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.math.exp
 
@@ -87,41 +109,108 @@ class HomeScreenActivity : ComponentActivity() {
     }
     private val homeScreenViewModel: HomeScreenViewModel by viewModels()
 
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             JustAppTheme {
+                val context = LocalContext.current
+                val saveUser = remember {
+                    mutableStateOf(false)
+                }
+                var store = DataStoreManager(LocalContext.current)
+                if (saveUser.value) {
+                    LaunchedEffect(Unit) {
+                        launch {
+                            store.saveUser("")
+
+                        }
+                    }
+                }
                 val scaffoldState = rememberScaffoldState()
-                val scope = rememberCoroutineScope()
-                Scaffold(scaffoldState = scaffoldState,
-                    topBar = {
-                        AppBar(
-                            onNavigationIconClick = {
-                                scope.launch { scaffoldState.drawerState.open() }
+                val user = store.getUser.collectAsState(initial = "")
 
-                            })
-                    },
-                    drawerContent = {
-                        head()
-                        DrawerBody(
-                            items = listOf(
-                                MenuItem("Home", "Home", Icons.Default.Home),
-                                MenuItem("Settings", "Settings", Icons.Default.Settings)
-                            ),
-                            onItemClick = { println("clicked on ${it.title}") }
-
+                var showAlert = remember { mutableStateOf(false) }
+                DeleteConfirmationDialog(
+                    modifier = Modifier,
+                    showView = showAlert.value,
+                    stringResource(id = R.string.delete_item),
+                    onConfirm = {
+                        homeScreenViewModel.deleteUser(user.value.removeSurrounding("\""))
+                        homeScreenViewModel.deleteUserImages(user.value.removeSurrounding("\""))
+                        context.startActivity(
+                            Intent(
+                                context, MainActivity::class.java
+                            )
                         )
-                    }) {
+                        saveUser.value = true
+                        showAlert.value = false
+                    },
+                    onCancel = { showAlert.value = false })
+
+                val scope = rememberCoroutineScope()
+                Scaffold(scaffoldState = scaffoldState, topBar = {
+                    AppBar(onNavigationIconClick = {
+                        scope.launch { scaffoldState.drawerState.open() }
+
+                    })
+                }, drawerContent = {
+                    head(scaffoldState, scope)
+                    Divider(
+                        color = Color.LightGray,
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(10.dp, 0.dp, 10.dp, 10.dp)
+                    )
+                    DrawerBody(
+                        items = listOf(
+                            MenuItem("Home", "Home", Icons.Default.Home),
+                            MenuItem("Settings", "Settings", Icons.Default.Settings),
+                            MenuItem("Log Out", "Log Out", Icons.Filled.ArrowBack),
+                            MenuItem(
+                                "Delete Account", "Delete Account", Icons.Filled.Delete
+                            )
+
+
+                        ), onItemClick = {
+                            if (it.title.equals("Settings")) {
+                                context.startActivity(
+                                    Intent(
+                                        context, SettingsScreen::class.java
+                                    )
+                                )
+                            }
+                            if (it.title.equals("Home")) {
+                                context.startActivity(
+                                    Intent(
+                                        context, HomeScreenActivity::class.java
+                                    )
+                                )
+                            }
+                            if (it.title.equals("Log Out")) {
+                                saveUser.value = true
+                                context.startActivity(
+                                    Intent(
+                                        context, MainActivity::class.java
+                                    )
+                                )
+                            }
+
+                            if (it.title.equals("Delete Account")) {
+                                showAlert.value = true
+
+                            }
+                        })
+                }) {
 
                     Column() {
-                        // val mDate = remember { mutableStateOf(LocalDate.now().toString()) }
                         var mDay =
-                            remember { mutableStateOf(LocalDate.now().dayOfMonth.toString()) }
+                            rememberSaveable { mutableStateOf(LocalDate.now().dayOfMonth.toString()) }
                         val mMonth =
-                            remember { mutableStateOf(LocalDate.now().monthValue.toString()) }
-                        val mYear = remember { mutableStateOf(LocalDate.now().year.toString()) }
-                        calendar(onDateChanged = { year, month, day ->
+                            rememberSaveable { mutableStateOf(LocalDate.now().monthValue.toString()) }
+                        val mYear =
+                            rememberSaveable { mutableStateOf(LocalDate.now().year.toString()) }
+                        calendar(onDateChanged = { day, month, year ->
                             mDay.value = day.toString()
                             mMonth.value = month.toString()
                             mYear.value = year.toString()
@@ -158,19 +247,12 @@ class HomeScreenActivity : ComponentActivity() {
     }
 
 
-    @Composable
-    fun totalExpenseView(){
-
-    }
-
-
     @RequiresApi(Build.VERSION_CODES.O)
     @Composable
     fun calendar(
         onDateChanged: (Int, Int, Int) -> Unit
     ) {
         val mContext = LocalContext.current
-
 
         val mYear: Int
         val mMonth: Int
@@ -183,29 +265,37 @@ class HomeScreenActivity : ComponentActivity() {
         mYear = mCalendar.get(Calendar.YEAR)
         mMonth = mCalendar.get(Calendar.MONTH)
         mDay = mCalendar.get(Calendar.DAY_OF_MONTH)
-
         mCalendar.time = Date()
 
-
-
-        val mDate = remember { mutableStateOf(LocalDate.now().toString()) }
-
+        val mDate = rememberSaveable {
+            mutableStateOf(
+                LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")).toString()
+            )
+        }
 
         val mDatePickerDialog = DatePickerDialog(
-            mContext,
-            { _, year, month, dayOfMonth ->
+            mContext, { _, year, month, dayOfMonth ->
                 // Your code here, which will be executed when the date is set.
                 // You can use the new values of year, month, and dayOfMonth to perform some action.
                 mDate.value = "$dayOfMonth/${month + 1}/$year"
-                onDateChanged(year, (month + 1), dayOfMonth)
+                onDateChanged(dayOfMonth, (month + 1), year)
             }, mYear, mMonth, mDay
         )
 
-        Column(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // Displaying the mDate value in the Text
+            Text(
+                text = "${mDate.value}",
+                fontSize = 30.sp,
+                textAlign = TextAlign.Center,
+                fontFamily = FontFamily(Font(R.font.teko_semibold))
+            )
+            // Adding a space of 100dp height
+            Spacer(modifier = Modifier.size(10.dp))
 
             Icon(
                 Icons.Filled.Edit,
@@ -215,25 +305,21 @@ class HomeScreenActivity : ComponentActivity() {
                     .clickable { mDatePickerDialog.show() },
                 tint = Color.Red
             )
-
-            // Adding a space of 100dp height
-            Spacer(modifier = Modifier.size(10.dp))
-
-            // Displaying the mDate value in the Text
-            Text(
-                text = "Date: ${mDate.value}",
-                fontSize = 30.sp,
-                textAlign = TextAlign.Center,
-                fontFamily = FontFamily(Font(R.font.teko_semibold))
-            )
         }
     }
 
     @OptIn(ExperimentalCoilApi::class)
     @Composable
-    fun head() {
+    fun head(scaffoldState: ScaffoldState, scope: CoroutineScope) {
+        val context = LocalContext.current
+        val store = DataStoreManager(context)
+        var user = store.getUser.collectAsState(initial = "")
+
         val userRepository = UserFavActivitiesRepository()
         var selectImages by remember { mutableStateOf(listOf<Uri>()) }
+        var showButton = remember {
+            mutableStateOf(false)
+        }
         val gallerylauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.GetMultipleContents()
         ) {
@@ -242,55 +328,95 @@ class HomeScreenActivity : ComponentActivity() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 64.dp),
+                .background(customColors.onPrimary),
             contentAlignment = Alignment.Center
         ) {
-            Column() {
+            Column(modifier = Modifier.padding(0.dp, 25.dp, 0.dp, 0.dp)) {
                 Row() {
-                    var painter = rememberImagePainter(
-                        data = "http://192.168.1.6:8080/image/profile",
-                        builder = {})
-                    if (!selectImages.isEmpty()) {
-                        painter = rememberImagePainter(
-                            data = selectImages[0],
-                            builder = {})
-                    }
-                    Spacer(Modifier.weight(0.25f))
-                    Image(
-                        painter = painter,
-                        contentDescription = "",
-                        modifier = Modifier
-                            .padding(4.dp, 4.dp)
-                            .background(colorResource(id = R.color.purple_200), CircleShape)
-                            .clip(CircleShape)
-                            .clickable { gallerylauncher.launch("image/*") }
-                            .size(125.dp),
+//                    var painter =
+//                        rememberImagePainter(data = RetrofitHelper.Base_URL + "image/" + user.value.removeSurrounding(
+//                            "\""
+//                        ),
+//                            builder = { placeholder(R.drawable.app_icon) })
+//                    if (!selectImages.isEmpty()) {
+//                        painter = rememberImagePainter(data = selectImages[0],
+//                            builder = { placeholder(R.drawable.app_icon) })
+//                    }
+                    Column() {
 
-                        contentScale = ContentScale.Crop,
-                    )
-                    Spacer(Modifier.weight(0.9f))
-                    Image(
-                        painter = painterResource(id = R.drawable.edit),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .clickable {
-                                if (!selectImages.isEmpty()) {
-                                    val filedir = applicationContext.filesDir
-                                    val file = File(filedir, "image.jpg")
-                                    val inputStream =
-                                        contentResolver.openInputStream(selectImages[0])
-                                    val fileOutputStream = FileOutputStream(file)
-                                    inputStream!!.copyTo(fileOutputStream)
-                                    userRepository.insertPic(file)
-                                }
+                        Box() {
+//                            Image(painter = painterResource(id = R.drawable.app_icon),
+//                                contentDescription = null,
+//                                modifier = Modifier
+//                                    .padding(4.dp, 4.dp)
+//                                    // .background(colorResource(id = R.color.purple_200), CircleShape)
+//                                    .clip(CircleShape)
+//                                    .clickable { gallerylauncher.launch("image/*") }
+//                                    .size(125.dp),
+//
+//                                contentScale = ContentScale.Crop)
+//                            Image(painter = painter,
+//                                contentDescription = "",
+//                                modifier = Modifier
+//                                    .padding(4.dp, 4.dp)
+//                                    // .background(colorResource(id = R.color.purple_200), CircleShape)
+//                                    .clip(CircleShape)
+//                                    .clickable { gallerylauncher.launch("image/*") }
+//                                    .size(125.dp),
+//
+//                                contentScale = ContentScale.Crop)
 
+                            Image(painter = painterResource(id = R.drawable.app_icon),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .padding(4.dp, 4.dp)
+                                    // .background(colorResource(id = R.color.purple_200), CircleShape)
+                                    .clip(CircleShape)
+                                    .clickable { gallerylauncher.launch("image/*") }
+                                    .size(125.dp), contentScale = ContentScale.Crop)
+
+                            CoilImage(imageUrl = RetrofitHelper.Base_URL + "image/" + user.value.removeSurrounding(
+                                "\""
+                            ),
+                                contentDescription = null,
+                                onImageClick = { gallerylauncher.launch("image/*") })
+
+                            if (!selectImages.isEmpty()) {
+                                showButton.value=true
+                                CoilImage(
+                                    imageUrl = selectImages[0].toString(),
+                                    contentDescription = null,
+                                    onImageClick = { gallerylauncher.launch("image/*") })
                             }
-                            .padding(5.dp)
-                            .size(20.dp),
-                        alignment = Alignment.TopEnd,
-                    )
+
+                        }
+
+                    }
+
+                    //Spacer(Modifier.weight(0.65f))
+                    //if (!selectImages.isEmpty()) {
+                    if (showButton.value) {
+                        Button(onClick = {
+                            if (!selectImages.isEmpty()) {
+                                val filedir = applicationContext.filesDir
+                                val file = File(filedir, "image.jpg")
+                                val inputStream = contentResolver.openInputStream(selectImages[0])
+                                val fileOutputStream = FileOutputStream(file)
+                                inputStream!!.copyTo(fileOutputStream)
+                                userRepository.insertPic(file, user.value.removeSurrounding("\""))
+                                selectImages.dropWhile { selectImages.isNotEmpty() }
+                                scope.launch { scaffoldState.drawerState.close() }
+                                showButton.value = false
+                            }
+                        }) {
+                            Text(text = "Save")
+
+                        }
+                    }
+
 
                 }
+
             }
         }
     }
@@ -306,35 +432,52 @@ fun StatefulExpenditureView(
     modifier: Modifier
 ) {
 
+    val context = LocalContext.current
+    val store = DataStoreManager(context)
+    var theme = store.getTheme.collectAsState(initial = "")
+    var currency = store.getCurrency.collectAsState(initial = "INR")
+    var user = store.getUser.collectAsState(initial = "")
+
     var showView = remember { mutableStateOf(false) }
     var text by remember { mutableStateOf("") }
     var number by remember { mutableStateOf("") }
     var showAlert = remember { mutableStateOf(false) }
     val expenditures = homeScreenViewModel.getExpenses(
-        "animesh",
-        mDate,
-        mMonth,
-        mYear
+        user.value.toString(), mDate, mMonth, mYear
     )
     var total = homeScreenViewModel.getTotalExpenseOnDay(
-                "animesh",
-                mDate,
-                mMonth,
-                mYear
-            )
-
+        user.value.toString(), mDate, mMonth, mYear
+    )
+    var totalByMonth = homeScreenViewModel.getTotalExpenseForMonth(
+        user.value.toString(), mMonth, mYear
+    )
 
     Text(
-        "Total Expenditure On this day-${
-            total
-        }",
-        modifier = Modifier
+        "Total Expenditure On this day-${total}(${
+            currency.value
+        })", modifier = Modifier
             .padding(10.dp, 5.dp, 10.dp, 5.dp)
             .fillMaxWidth()
             .background(
                 customColors.onPrimary
-            ),
-        style = TextStyle(
+            ), style = TextStyle(
+            fontFamily = FontFamily(Font(R.font.teko_semibold)),
+            fontWeight = FontWeight.Normal,
+            fontSize = 22.sp,
+            color = fontcolors.primary
+        ), textAlign = TextAlign.Center
+
+    )
+    Spacer(modifier = Modifier.padding(5.dp, 5.dp, 5.dp, 5.dp))
+    Text(
+        "Total Expenditure this month-${totalByMonth}(${
+            currency.value
+        })", modifier = Modifier
+            .padding(10.dp, 5.dp, 10.dp, 5.dp)
+            .fillMaxWidth()
+            .background(
+                customColors.onPrimary
+            ), style = TextStyle(
             fontFamily = FontFamily(Font(R.font.teko_semibold)),
             fontWeight = FontWeight.Normal,
             fontSize = 22.sp,
@@ -344,6 +487,7 @@ fun StatefulExpenditureView(
     )
 
     Spacer(modifier = Modifier.padding(5.dp, 5.dp, 5.dp, 5.dp))
+
     var expense by remember { mutableStateOf<Expenditure>(Expenditure("", "", "", "", "", "")) }
     StatelessExpenditureView(
         showView = showView.value,
@@ -351,35 +495,43 @@ fun StatefulExpenditureView(
         number = number,
         expenditures = expenditures,
         onTextValueChanged = { text = it },
-        onExpenseValueChanged = { number = it },
+        onExpenseValueChanged = { newValue ->
+            if (newValue.length <= 6) {
+                number = newValue
+            }
+        },
         onSaveClick = {
-            var expenditure = Expenditure(
-                "animesh",
-                text,
-                number,
-                mDate,
-                mMonth,
-                mYear
-            )
-            showView.value = !showView.value
-            homeScreenViewModel.addExpense(expenditure)
-            expenditures.add(expenditure)
+            if (text.isNullOrEmpty() || number.isNullOrEmpty()) {
+                Toast.makeText(context, "Please Enter required details", Toast.LENGTH_SHORT).show()
+            } else {
+                var expenditure = Expenditure(
+                    user.value, text, number, mDate, mMonth, mYear
+                )
+                showView.value = !showView.value
+                homeScreenViewModel.addExpense(expenditure)
+                expenditures.add(expenditure)
+            }
+
+
         },
         onFloatinguttonClick = { showView.value = !showView.value },
         onDeleteClick = { it ->
             expense = it
             showAlert.value = true
         },
+        theme.value,
         modifier = modifier
     )
 
     DeleteConfirmationDialog(
         modifier = modifier,
         showView = showAlert.value,
+        stringResource(id = R.string.delete_item),
         onConfirm = {
             homeScreenViewModel.removeExpense(expense)
             showAlert.value = false
-        }, onCancel = { showAlert.value = false })
+        },
+        onCancel = { showAlert.value = false })
 
 
 }
@@ -388,51 +540,42 @@ fun StatefulExpenditureView(
 fun DeleteConfirmationDialog(
     modifier: Modifier,
     showView: Boolean,
+    string: String,
     onConfirm: () -> Unit,
     onCancel: () -> Unit
 ) {
 
     if (showView) {
-        AlertDialog(
-            onDismissRequest = onCancel,
-            title = {
-                Text(
-                    "Confirm Deletion", style = TextStyle(
-                        fontFamily = FontFamily(Font(R.font.handlee_regular)),
-                        fontWeight = FontWeight.Normal,
-                        color = Color.Black
-                    )
+        AlertDialog(onDismissRequest = onCancel, title = {
+            Text(
+                "Confirm Deletion", style = TextStyle(
+                    fontFamily = FontFamily(Font(R.font.handlee_regular)),
+                    fontWeight = FontWeight.Normal,
+                    color = Color.Black
                 )
-            },
-            text = {
-                Text(
-                    "${R.string.delete_item}", style = TextStyle(
-                        fontFamily = FontFamily(Font(R.font.handlee_regular)),
-                        fontWeight = FontWeight.Normal,
-                        color = Color.Black
-                    )
+            )
+        }, text = {
+            Text(
+                text = string, style = TextStyle(
+                    fontFamily = FontFamily(Font(R.font.handlee_regular)),
+                    fontWeight = FontWeight.Normal,
+                    color = Color.Black
                 )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onConfirm()
+            )
+        }, confirmButton = {
+            Button(onClick = {
+                onConfirm()
 
-                    }
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                Button(
-                    onClick = {
-                        onCancel()
-                    }
-                ) {
-                    Text("Cancel")
-                }
+            }) {
+                Text("OK")
             }
-        )
+        }, dismissButton = {
+            Button(onClick = {
+                onCancel()
+            }) {
+                Text("Cancel")
+            }
+        })
     }
 
 
@@ -452,22 +595,28 @@ fun StatelessExpenditureView(
     onSaveClick: () -> Unit,
     onFloatinguttonClick: () -> Unit,
     onDeleteClick: (Expenditure) -> Unit,
+    color: String,
     modifier: Modifier
 ) {
-
-
-    Box() {
+    var colorTheme = Color.White
+    if (color.equals("1")) {
+        colorTheme = Color.Black
+    }
+    val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    Box(modifier = Modifier.background(colorTheme, RectangleShape)) {
         Spacer(modifier = modifier.padding(25.dp))
         if (!showView) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(20.dp, 5.dp, 20.dp, 25.dp)
-                    .clickable { }, verticalArrangement = Arrangement.spacedBy(20.dp)
+                    .clickable { },
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 itemsIndexed(expenditures) { index, item ->
-                    ExpenditureItem(
-                        expenditure = item,
+                    ExpenditureItem(expenditure = item,
                         FontFamily(Font(R.font.handlee_regular)),
                         onDelete = { onDeleteClick(item) })
                 }
@@ -479,7 +628,7 @@ fun StatelessExpenditureView(
                 modifier = Modifier
                     .padding(24.dp)
                     .fillMaxHeight()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
             ) {
                 Text(
                     text = "Expense:",
@@ -506,7 +655,16 @@ fun StatelessExpenditureView(
                         cursorColor = MaterialTheme.colors.primary,
                         focusedBorderColor = MaterialTheme.colors.primary,
                         backgroundColor = customColors.onPrimary
-                    )
+                    ),
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(onDone = {
+                        focusManager.clearFocus()
+                        coroutineScope.launch {
+                            scrollState.animateScrollTo(0)
+                        }
+                    })
                 )
 
                 Text(
@@ -526,6 +684,7 @@ fun StatelessExpenditureView(
                         .padding(bottom = 32.dp)
                         .heightIn(100.dp, 350.dp),
                     value = number,
+                    singleLine = true,
                     onValueChange = { onExpenseValueChanged(it) },
                     placeholder = { Text("Amount") },
                     colors = TextFieldDefaults.outlinedTextFieldColors(
@@ -534,7 +693,18 @@ fun StatelessExpenditureView(
                         focusedBorderColor = MaterialTheme.colors.primary,
                         backgroundColor = customColors.onPrimary
                     ),
-                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(onDone = {
+                        focusManager.clearFocus()
+                        coroutineScope.launch {
+                            scrollState.animateScrollTo(0)
+                        }
+                    })
+
                 )
                 Button(
                     onClick = { onSaveClick() },
