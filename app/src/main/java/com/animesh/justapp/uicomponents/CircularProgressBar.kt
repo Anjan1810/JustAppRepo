@@ -1,9 +1,6 @@
 package com.animesh.justapp.uicomponents
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Typography
@@ -20,18 +17,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun CircularProgressBar(isDisplayed: Boolean) {
-    if (isDisplayed) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
+fun CircularProgressBar() {
+
+       //Box(modifier = Modifier){
+           Row(
+               modifier = Modifier
+                   .fillMaxWidth()
                ,
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            CircularProgressIndicator(color = MaterialTheme.colors.primary)
-        }
-    }
+               horizontalArrangement = Arrangement.Center,
+               verticalAlignment = Alignment.CenterVertically
+           ) {
+               CircularProgressIndicator(progress = 0.9f, modifier = Modifier.size(70.dp), color = customColors.onSecondary, strokeWidth = 5.dp)
+
+           }
+      // }
+
+
 }
 @Composable
 fun brushForTextField(color:Color): Brush {

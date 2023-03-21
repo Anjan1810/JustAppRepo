@@ -1,12 +1,16 @@
 package com.animesh.justapp
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
@@ -15,7 +19,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
@@ -23,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.animesh.justapp.data.User
 import com.animesh.justapp.ui.theme.JustAppTheme
+import com.animesh.justapp.uicomponents.CircularProgressBar
 import com.animesh.justapp.uicomponents.brushForTextField
 import com.animesh.justapp.uicomponents.colors
 import com.animesh.justapp.uicomponents.customColors
@@ -50,6 +60,25 @@ class RegisterActivity : ComponentActivity() {
 
 @Composable
 fun SetUpRegisterScreen(viewModel: RegisterViewModel) {
+    val context = LocalContext.current
+    var isDisplayed = remember { mutableStateOf(false) }
+
+    if (isDisplayed.value) {
+        CircularProgressBar()
+        val result = viewModel.register(
+            User(
+                viewModel.username,
+                viewModel.email,
+                viewModel.password
+            )
+        )
+        isDisplayed.value = false
+        context.startActivity(
+            Intent(
+                context, MainActivity::class.java
+            )
+        )
+    }
 
     Box(modifier = Modifier.background(customColors.onPrimary)) {
 
@@ -62,6 +91,20 @@ fun SetUpRegisterScreen(viewModel: RegisterViewModel) {
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
+            Image(
+                painter = painterResource(id = R.drawable.app_icon),
+                contentDescription = "",
+                modifier = Modifier
+                    .padding(4.dp, 4.dp)
+                    .background(colorResource(id = R.color.purple_200), CircleShape)
+                    .clip(CircleShape)
+                    .size(125.dp),
+
+                contentScale = ContentScale.Crop,
+            )
+            Spacer(Modifier.height(15.dp))
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "Name", Modifier.weight(0.29F, true),
@@ -73,7 +116,7 @@ fun SetUpRegisterScreen(viewModel: RegisterViewModel) {
                 OutlinedTextField(modifier = Modifier
                     .weight(0.75f, true)
                     .background(
-                        brushForTextField(customColors.onSecondary)
+                        brushForTextField(customColors.primary)
                     ),
                     value = id.value,
                     onValueChange = { newid -> id.value = newid },
@@ -86,7 +129,7 @@ fun SetUpRegisterScreen(viewModel: RegisterViewModel) {
             ) {
                 Text(
                     text = "EmailId", Modifier.weight(0.29F, true),
-                    fontFamily =  FontFamily(Font(R.font.handlee_regular)),
+                    fontFamily = FontFamily(Font(R.font.handlee_regular)),
                     fontSize = 20.sp,
                     maxLines = 1
                 )
@@ -95,7 +138,7 @@ fun SetUpRegisterScreen(viewModel: RegisterViewModel) {
                 OutlinedTextField(modifier = Modifier
                     .weight(0.75f, true)
                     .background(
-                        brushForTextField(customColors.onSecondary)
+                        brushForTextField(customColors.primary)
                     ),
                     value = emailId.value,
                     onValueChange = { newemailId -> emailId.value = newemailId },
@@ -117,7 +160,7 @@ fun SetUpRegisterScreen(viewModel: RegisterViewModel) {
                 OutlinedTextField(modifier = Modifier
                     .weight(0.75f, true)
                     .background(
-                        brushForTextField(customColors.onSecondary)
+                        brushForTextField(customColors.primary)
                     ),
                     value = pswd.value,
                     onValueChange = { newpswd -> pswd.value = newpswd },
@@ -132,19 +175,17 @@ fun SetUpRegisterScreen(viewModel: RegisterViewModel) {
                 Button(
 
                     onClick = {
+                        if (viewModel.username.isNullOrEmpty() || viewModel.email.isNullOrEmpty() || viewModel.password.isNullOrEmpty()) {
+                            Toast.makeText(context, "Please enter details", Toast.LENGTH_SHORT)
+                                .show()
+                        } else {
+                            isDisplayed.value = true
 
-                        viewModel.register(
-                            User(
-                                viewModel.username,
-                                viewModel.email,
-                                viewModel.password
-                            )
-                        )
-                        //login(viewModel)
-                        // context.startActivity(Intent(context, ItemListActivity::class.java))
+                        }
+
+
                     },
 
-                    // Modifier.weight(0.5F,true),
                     Modifier.fillMaxWidth(0.5f),
                     shape = RoundedCornerShape(5.dp),
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF4CAF50))

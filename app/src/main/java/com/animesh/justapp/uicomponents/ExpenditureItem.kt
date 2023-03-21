@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.android.style.TextDecorationSpan
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,7 +60,7 @@ fun ExpenditureItem(
                 modifier = Modifier
                     .padding(2.dp, 2.dp, 0.dp, 0.dp),
                 color = Color.DarkGray,
-                fontSize = 20.sp,
+                fontSize = 22.sp,
                 fontFamily = fontFamily, textDecoration = TextDecoration.Underline
             )
             Text(
@@ -82,7 +83,7 @@ fun ExpenditureItem(
                 modifier = Modifier
                     .padding(2.dp, 2.dp, 0.dp, 0.dp),
                 color = Color.DarkGray,
-                fontSize = 20.sp,
+                fontSize = 22.sp,
                 fontFamily = fontFamily,textDecoration = TextDecoration.Underline
             )
             Text(

@@ -2,37 +2,44 @@ package com.animesh.justapp
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.background
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.animesh.justapp.data.MenuItem
 import com.animesh.justapp.data.User
+import com.animesh.justapp.repository.DataStoreManager
 import com.animesh.justapp.ui.theme.JustAppTheme
 import com.animesh.justapp.uicomponents.*
 import com.animesh.justapp.viewmodels.LoginViweModel
@@ -40,7 +47,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-
+    private val backPressedCallback = object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            // Handle the back button press
+            finishAffinity()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,41 +63,112 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    StatefulLoginRegisterScreen()
+                    val context = LocalContext.current
+                    val store = DataStoreManager(context)
+                    var user = store.getUser.collectAsState(initial = "")
+                    if (user.value == "") {
+                        StatefulLoginRegisterScreen()
+                    } else {
+                        context.startActivity(Intent(context, HomeScreenActivity::class.java))
+                    }
+
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        // Register the back pressed callback with the OnBackPressedDispatcher
+        onBackPressedDispatcher.addCallback(this, backPressedCallback)
+    }
+
+    override fun onPause() {
+        super.onPause()
+
+        // Unregister the back pressed callback with the OnBackPressedDispatcher
+        backPressedCallback.isEnabled = false
     }
 }
 
 @Composable
 fun StatefulLoginRegisterScreen(loginViewModel: LoginViweModel = viewModel()) {
     val context = LocalContext.current
+    val store = DataStoreManager(context)
+    val saveUser = remember {
+        mutableStateOf(false)
+    }
+    var userId = remember {
+        mutableStateOf("")
+    }
+    var isDisplayed = remember { mutableStateOf(false) }
 
+
+
+    if (saveUser.value) {
+        LaunchedEffect(Unit) {
+            launch {
+                store.saveUser(userId.value.toString())
+
+            }
+        }
+    }
     StatelessLoginRegisterScreen(
-        id = loginViewModel.username.value,
+        id = loginViewModel.email.value,
         password = loginViewModel.password.value,
         onloginClick = {
-            val result = loginViewModel.doLogin(
-                User(
-                    loginViewModel.username.value,
-                    "", loginViewModel.password.value
-                )
-            )
-            if (result != null && result.toString().equals("OK")) {
-                context.startActivity(
-                    Intent(
-                        context, HomeScreenActivity::class.java
-                    )
-                )
+            if (loginViewModel.email.value.isEmpty() || loginViewModel.password.value.isEmpty()) {
+                Toast.makeText(context, "Please enter credentials", Toast.LENGTH_SHORT).show()
+
+            } else {
+                isDisplayed.value = true
+
+
+//                val result = loginViewModel.doLogin(
+//                    User(
+//                        "", loginViewModel.email.value, loginViewModel.password.value
+//                    )
+//                )
+//
+//                if (result.get("emailId") != null) {
+//
+//                    userId.value = result.get("emailId").toString()
+//                    saveUser.value = true
+//                    isDisplayed.value = false
+//                    context.startActivity(
+//                        Intent(
+//                            context, HomeScreenActivity::class.java
+//                        )
+//                    )
+//                }
             }
+
         },
         onRegisterClick = { context.startActivity(Intent(context, RegisterActivity::class.java)) },
-        onLoginValueChange = { newid -> loginViewModel.username.value= newid },
+        onLoginValueChange = { newid -> loginViewModel.email.value = newid },
         onPswdValChange = { newpswd -> loginViewModel.password.value = newpswd },
         modifier = Modifier
     )
+    if (isDisplayed.value) {
+        CircularProgressBar()
+        val result = loginViewModel.doLogin(
+            User(
+                "", loginViewModel.email.value, loginViewModel.password.value
+            )
+        )
 
+        if (result.get("emailId") != null) {
+            userId.value = result.get("emailId").toString()
+            saveUser.value = true
+            isDisplayed.value = false
+            context.startActivity(
+                Intent(
+                    context, HomeScreenActivity::class.java
+                )
+            )
+        }
+    }
 
 }
 
@@ -110,9 +193,23 @@ fun StatelessLoginRegisterScreen(
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
+
+            Image(
+                painter = painterResource(id = R.drawable.app_icon),
+                contentDescription = "",
+                modifier = Modifier
+                    .padding(4.dp, 4.dp)
+                    .background(colorResource(id = R.color.purple_200), CircleShape)
+                    .clip(CircleShape)
+                    .size(125.dp),
+
+                contentScale = ContentScale.Crop,
+            )
+            Spacer(Modifier.height(15.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "UserId",
+                    text = "Email Id",
                     modifier.weight(0.29F, true),
                     fontFamily = FontFamily(Font(R.font.teko_semibold)),
                     fontSize = 24.sp
@@ -125,7 +222,7 @@ fun StatelessLoginRegisterScreen(
                     ),
                     value = id,
                     onValueChange = { onLoginValueChange(it) },
-                    placeholder = { Text("Enter UserId") }
+                    placeholder = { Text("Enter User Id") }
                 )
             }
             Row(
@@ -145,6 +242,10 @@ fun StatelessLoginRegisterScreen(
                         brushForTextField(customColors.secondary)
                     ),
                     value = password,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password
+                    ),
                     onValueChange = { onPswdValChange(it) },
                     placeholder = { Text("Enter Password") }
                 )
@@ -165,7 +266,8 @@ fun StatelessLoginRegisterScreen(
                     Text("Login", color = Color.White)
                 }
             }
-            Row(modifier.padding(0.dp,0.dp,0.dp,10.dp),
+            Row(
+                modifier.padding(0.dp, 20.dp, 0.dp, 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {

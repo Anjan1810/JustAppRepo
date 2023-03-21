@@ -29,6 +29,13 @@ class HomeScreenViewModel @Inject constructor(userFavActRepo: UserFavActivitiesR
         return totalExpenditure
     }
 
+    fun getTotalExpenseForMonth(user: String, month: String, year: String): Int {
+        var totalExpenditure = 0
+        userRepo1.getExpendituresByMonth(user, month, year)
+            .forEach { totalExpenditure += it.expenditureAmount.toInt() }
+        return totalExpenditure
+    }
+
     fun getExpenses(
         userId: String,
         day: String,
@@ -50,6 +57,17 @@ class HomeScreenViewModel @Inject constructor(userFavActRepo: UserFavActivitiesR
         expenditures.remove(expenditure)
         ///if succesful add to live data
 
+    }
+
+    fun deleteUser(user: String) {
+        userRepo1.deleteUser(user)
+
+        ///if succesful add to live data
+    }
+    fun deleteUserImages(user: String) {
+        userRepo1.deleteUserImages(user)
+
+        ///if succesful add to live data
     }
 
 

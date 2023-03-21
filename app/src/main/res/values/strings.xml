@@ -1,6 +1,8 @@
 <resources>
-    <string name="app_name">JustApp</string>
+    <string name="app_name">MoneyTrack</string>
     <string name="title_activity_register">RegisterActivity</string>
     <string name="title_activity_home_screen">HomeScreenActivity</string>
     <string name="delete_item">Are you sure you want to delete this item?</string>
+    <string name="delete_account">Are you sure you want to delete your account and all your data?</string>
+    <string name="title_activity_settings_screen">SettingsScreen</string>
 </resources>
